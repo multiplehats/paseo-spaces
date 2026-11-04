@@ -1,0 +1,16 @@
+{
+  "id": "spaces",
+  "name": "Spaces",
+  "description": "Group sidebar projects into Spaces and switch between them from a dropdown, the keyboard or the command center.",
+  "icon": "assets/icon.png",
+  "media": [
+    "assets/switcher.png",
+    "assets/move-to-space.png",
+    "assets/clients.png",
+    "assets/manage.png",
+    "assets/command-center.png"
+  ],
+  "requirements": {
+    "paseo": ">=0.15.0"
+  }
+}

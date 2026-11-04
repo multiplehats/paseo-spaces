@@ -1,0 +1,40 @@
+{
+  "name": "paseo-spaces",
+  "private": true,
+  "version": "0.0.0",
+  "files": [
+    "paseo-plugin.json",
+    "OVERVIEW.md",
+    "OVERVIEW.*.md",
+    "index.client.ts",
+    "index.client.tsx",
+    "index.server.ts",
+    "index.server.tsx",
+    "client/",
+    "shared/",
+    "assets/"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "lint": "oxlint index.client.tsx index.server.ts client shared tests",
+    "format": "oxfmt index.client.tsx index.server.ts client shared tests",
+    "check": "npm run typecheck && npm run lint && npm test"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "0.15.0",
+    "@tanstack/react-query": "^5.90.11",
+    "@types/node": "^22.20.5",
+    "@types/react": "~19.2.0",
+    "linkedom": "^0.18.15",
+    "oxfmt": "^0.46.0",
+    "oxlint": "^1.61.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "zod": "^4.4.3"
+  },
+  "description": "Group Paseo's sidebar projects into Spaces and switch between them from a dropdown or the keyboard.",
+  "license": "MIT"
+}
