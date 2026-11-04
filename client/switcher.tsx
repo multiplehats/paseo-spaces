@@ -17,6 +17,36 @@ type Colors = PluginPopoverProps["theme"]["colors"];
 type Focusable = { focus?(): void } | null;
 type Mode = { kind: "list" } | { kind: "rename"; space: Space } | { kind: "remove"; space: Space };
 
+/**
+ * Paseo binds Escape to interrupting the running agent, and its shortcut dispatcher (on window,
+ * capture phase, so before any plugin listener) only stands aside while an HTML popover is
+ * open: that is how its own menus keep Escape. While our menu is open we hold an empty,
+ * invisible popover open too, so Escape closes the menu and never stops an agent.
+ */
+function holdEscape(): () => void {
+  if (typeof document === "undefined") return () => {};
+  const marker = document.createElement("div");
+  if (typeof marker.showPopover !== "function") return () => {};
+  marker.setAttribute("popover", "manual");
+  marker.setAttribute("aria-hidden", "true");
+  marker.style.cssText =
+    "position:fixed;inset:auto;width:0;height:0;margin:0;padding:0;border:0;opacity:0;pointer-events:none";
+  document.body.appendChild(marker);
+  try {
+    marker.showPopover();
+  } catch {
+    /* Already open or not allowed: the menu still works, Escape just stays Paseo's. */
+  }
+  return () => {
+    try {
+      marker.hidePopover();
+    } catch {
+      /* Closed already. */
+    }
+    marker.remove();
+  };
+}
+
 export interface SwitcherOptions {
   /** The client has a keyboard: rows show the digit that picks them. */
   keyboard: boolean;
@@ -60,6 +90,8 @@ export function createSwitcher(store: Store, { keyboard, shortcut }: SwitcherOpt
       );
     }, [device.compact, openPopover]);
     const hide = useCallback(() => setPlace(null), []);
+    const shown = place !== null;
+    useEffect(() => (shown ? holdEscape() : undefined), [shown]);
     useEffect(() => {
       open = show;
       return () => {
@@ -141,16 +173,25 @@ export function createSwitcher(store: Store, { keyboard, shortcut }: SwitcherOpt
       };
     });
 
+    // Escape closes the menu in every mode (a rename draft is discarded). See holdEscape for why
+    // Paseo leaves it to us instead of interrupting the running agent.
+    useEffect(() => {
+      if (typeof document === "undefined") return;
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== "Escape" || event.isComposing) return;
+        event.preventDefault();
+        event.stopPropagation();
+        finish();
+      };
+      document.addEventListener("keydown", onKeyDown, true);
+      return () => document.removeEventListener("keydown", onKeyDown, true);
+    });
+
     // While the list shows, 1–9 pick that Space.
     useEffect(() => {
       if (!keyboard || mode.kind !== "list" || typeof document === "undefined") return;
       const onKeyDown = (event: KeyboardEvent) => {
         if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-        if (event.key === "Escape") {
-          event.preventDefault();
-          event.stopPropagation();
-          return finish();
-        }
         const digit = /^Digit([1-9])$/.exec(event.code);
         const space = digit && layout.spaces[Number(digit[1]) - 1];
         if (!space) return;
