@@ -304,6 +304,8 @@ export function createStore({ rpc, lookup, memory, placeNew }: StoreOptions) {
       if (online.some((id) => !known.has(id))) return place();
       return Promise.resolve();
     },
+    /** List the hosts for new projects now, say when this window gets focus back. */
+    placeNow: place,
     /**
      * The sidebar shows these project view keys. One with no Space that no listing has
      * returned yet may be a project just created, so the hosts are listed again now.

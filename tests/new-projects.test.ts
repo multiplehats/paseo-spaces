@@ -115,6 +115,20 @@ test("Data: new projects wait for the window in use", async () => {
   lists.srv_a.push(project("p3", "host:srv_a:/dev/new"));
   await store.notice(["host:srv_a:/dev/new"]);
   assert.equal(settings.host.writes, 0);
+  await store.notice(["host:srv_a:/dev/new"]);
+  assert.equal(settings.host.writes, 0, "the sidebar does not ask twice");
+  focused = true;
+  await store.placeNow();
+  assert.equal(store.getSnapshot().layout.assignments["host:srv_a:/dev/new"], "s2");
+});
+
+test("Data: the regular refresh places a project that is still waiting", async () => {
+  let focused = false;
+  const { store, lists } = await setup({ placeNew: () => focused });
+  await store.setHosts(["srv_a"]);
+  store.select("s2");
+  lists.srv_a.push(project("p3", "host:srv_a:/dev/new"));
+  await store.notice(["host:srv_a:/dev/new"]);
   focused = true;
   const stop = store.start(5);
   try {

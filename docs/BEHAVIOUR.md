@@ -14,9 +14,9 @@ sections.
   **first** Space.
 - **New projects** join the current Space. A project that appears on a host after a desktop or
   web window first listed that host gets the window's current Space, as soon as its row shows
-  in the sidebar. When no window has focus at that moment, the next window to get focus places
-  it at its next refresh (15 seconds). Only the window with focus places projects, so two open
-  windows do not race. Phones never place projects: their sidebar is not filtered.
+  in the sidebar. When no window has focus at that moment (a folder picker is open, say), the
+  next window to get focus places it as soon as it does. Only the window with focus places
+  projects, so two open windows do not race. Phones never place projects: their sidebar is not filtered.
 - Projects a host already has when a window first lists it keep their place, and a project
   whose key already has a Space (one removed and added again, say) keeps that Space. A project
   created while no desktop or web window is open belongs to the first Space.

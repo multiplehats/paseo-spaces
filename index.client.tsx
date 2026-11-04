@@ -6,7 +6,7 @@ import type { HostApi } from "./client/hosts";
 import { bindKeys } from "./client/keys";
 import { createManageScreen } from "./client/manage";
 import { mountSidebar } from "./client/sidebar";
-import { createStore, type Memory } from "./client/store";
+import { createStore, type Memory, type Store } from "./client/store";
 import { createSwitcher } from "./client/switcher";
 
 const web = Platform.OS === "web" && typeof document !== "undefined";
@@ -37,6 +37,20 @@ const memory: Memory | undefined =
         },
       };
 
+// Adding a project opens a folder picker, so the window may not have focus when the project
+// appears. It waits, and is placed as soon as the window has focus again.
+function placeOnFocus(store: Store) {
+  const place = () => {
+    if (document.visibilityState === "visible") void store.placeNow();
+  };
+  window.addEventListener("focus", place);
+  document.addEventListener("visibilitychange", place);
+  return () => {
+    window.removeEventListener("focus", place);
+    document.removeEventListener("visibilitychange", place);
+  };
+}
+
 export default function contribute(client: PluginClientContext) {
   const store = createStore({
     rpc: client.rpc.bind(client),
@@ -54,6 +68,7 @@ export default function contribute(client: PluginClientContext) {
     registerCommands(client, store),
     web ? mountSidebar(document, store) : () => {},
     desktopMac ? bindKeys(document, store, switcher.control) : () => {},
+    web ? placeOnFocus(store) : () => {},
   ];
   return () => {
     for (const cleanup of cleanups.reverse()) cleanup();
