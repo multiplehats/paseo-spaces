@@ -19,7 +19,8 @@ running and the open chat stays put.
   picker. On phones, where the sidebar can't be filtered, this is how you sort projects.
 
 Projects are matched by the key Paseo's sidebar uses for them, so a project checked out on two
-hosts belongs to one Space. Unassigned projects belong to the first Space.
+hosts belongs to one Space. A project you create joins the Space you are in; projects you have
+not sorted otherwise belong to the first Space.
 
 ## Install
 

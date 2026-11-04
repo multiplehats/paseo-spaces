@@ -1,4 +1,5 @@
 import type { PluginPopoverProps, PluginSidebarItemProps } from "@getpaseo/plugin/client";
+import { useHosts } from "@getpaseo/plugin/client";
 import { Icon, SidebarRow, TextInput } from "@getpaseo/plugin/client/ui";
 import { type Ref, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -81,6 +82,15 @@ export function createSwitcher(store: Store, { keyboard, shortcut }: SwitcherOpt
     layout: device,
   }: PluginSidebarItemProps) {
     const { status, layout, current } = useSnapshot();
+    // The store learns which hosts to look for new projects on from here: the host list is
+    // only available to components. Joined, so an equal list does not run the effect again.
+    const online = useHosts()
+      .filter((host) => host.status === "online")
+      .map((host) => host.serverId)
+      .join("\n");
+    useEffect(() => {
+      void store.setHosts(online ? online.split("\n") : []);
+    }, [online]);
     const anchor = useRef<View>(null);
     const [place, setPlace] = useState<{ top: number; left: number; width: number } | null>(null);
     const show = useCallback(() => {

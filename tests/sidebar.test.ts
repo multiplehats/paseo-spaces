@@ -183,3 +183,42 @@ test("Sidebar: stopping removes everything the plugin added", async () => {
   assert.equal(document.querySelector("[data-spaces-owned]"), null);
   assert.equal(document.querySelector("#menu")!.textContent, "Open settings");
 });
+
+test("Sidebar: a project created in the sidebar shows up in the current Space", async () => {
+  const { document } = parseHTML(page());
+  const settings = fakeSettings(layout);
+  const projects = [
+    project("p1", "remote:github.com/acme/web"),
+    project("p2", "host:srv_mini:/dev/api"),
+  ];
+  const store = createStore({
+    rpc: settings.rpc,
+    lookup: () => fakeHost(projects, []),
+    placeNew: () => true,
+  });
+  await store.reload();
+  await store.setHosts(["srv_mini"]);
+  store.select("s2");
+  let changed = () => {};
+  const unmount = mountSidebar(document as unknown as Document, store, {
+    observe: (onChange) => {
+      changed = onChange;
+      return { disconnect() {} };
+    },
+  });
+  await settle();
+  assert.equal(settings.host.writes, 0, "the projects already there are left alone");
+
+  projects.push(project("p3", "host:srv_mini:/dev/new"));
+  const group = document.createElement("div");
+  group.setAttribute("role", "group");
+  group.id = "new";
+  group.innerHTML = '<div data-testid="sidebar-project-row-host:srv_mini:/dev/new">New</div>';
+  document.querySelector('[data-testid="sidebar-project-workspace-list-scroll"]')!.append(group);
+  changed();
+  for (let i = 0; i < 5; i++) await settle();
+  assert.equal(store.getSnapshot().layout.assignments["host:srv_mini:/dev/new"], "s2");
+  assert.equal(document.querySelector("#new")!.hasAttribute("data-spaces-hidden"), false);
+  assert.equal(document.querySelector("#api")!.hasAttribute("data-spaces-hidden"), true);
+  unmount();
+});

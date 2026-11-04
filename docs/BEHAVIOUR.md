@@ -12,6 +12,14 @@ sections.
   `JSON.stringify([serverId, projectId])`. The same project on two hosts shares one key.
 - A project without an assignment, or assigned to a Space that no longer exists, belongs to the
   **first** Space.
+- **New projects** join the current Space. A project that appears on a host after a desktop or
+  web window first listed that host gets the window's current Space, as soon as its row shows
+  in the sidebar. When no window has focus at that moment, the next window to get focus places
+  it at its next refresh (15 seconds). Only the window with focus places projects, so two open
+  windows do not race. Phones never place projects: their sidebar is not filtered.
+- Projects a host already has when a window first lists it keep their place, and a project
+  whose key already has a Space (one removed and added again, say) keeps that Space. A project
+  created while no desktop or web window is open belongs to the first Space.
 - The default layout is one Space, "Main".
 - Space names are trimmed, 1 to 60 characters. A new Space is named "Space N", N being one more
   than the number of Spaces, or the next number not already taken.

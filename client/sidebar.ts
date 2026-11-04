@@ -73,10 +73,15 @@ export function mountSidebar(doc: Document, store: Store, options: SidebarOption
   }
 
   function filterProjects({ layout, current }: Snapshot) {
+    const keys: string[] = [];
     for (const row of doc.querySelectorAll(`[data-testid^="${PROJECT_ROW}"]`)) {
+      const key = keyOf(row, PROJECT_ROW);
+      keys.push(key);
       const group = row.closest('[role="group"]') ?? row;
-      hide(group, spaceFor(layout, keyOf(row, PROJECT_ROW)) !== current);
+      hide(group, spaceFor(layout, key) !== current);
     }
+    // A row the store has not heard of may be a project just created, for the current Space.
+    void store.notice(keys);
   }
 
   function filterPinned({ layout, current, placements }: Snapshot) {

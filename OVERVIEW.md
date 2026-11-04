@@ -16,7 +16,8 @@ center (⌘K) lists "Switch to space" for every Space, "New space" and "Manage s
 
 Each project's menu in the sidebar has a "Move to space" section. The manage screen lists every
 project on every connected host with a Space picker for each. A project checked out on two hosts
-belongs to one Space, and projects you have not sorted belong to the first Space.
+belongs to one Space. A project you create joins the Space you are in, and projects you have not
+sorted otherwise belong to the first Space.
 
 ## What changes in the sidebar
 

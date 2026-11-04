@@ -2,15 +2,17 @@ import type { HostApi, HostProjectEntry } from "../client/hosts";
 import { createStore, type Memory, type StoreOptions } from "../client/store";
 
 export const settle = () => new Promise((resolve) => setImmediate(resolve));
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Host settings with revision checks, as the daemon keeps them. */
+/** Host settings with revision checks, as the daemon keeps them. Writes take `writeMs`. */
 export function fakeSettings(initial: unknown = {}) {
-  const host = { values: initial, revision: 1, writes: 0, offline: false };
+  const host = { values: initial, revision: 1, writes: 0, offline: false, writeMs: 0 };
   const rpc = (async (contract: { name: string }, input: { revision: string; values: unknown }) => {
     if (host.offline) throw new Error("Transport not connected");
     if (contract.name === "settings.layout.read")
       return { status: "ready", revision: String(host.revision), values: host.values };
     if (contract.name === "settings.layout.write") {
+      if (host.writeMs) await sleep(host.writeMs);
       if (input.revision !== String(host.revision))
         return { status: "conflict", error: "Revision changed" };
       host.writes++;

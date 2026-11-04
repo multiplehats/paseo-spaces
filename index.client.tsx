@@ -42,6 +42,9 @@ export default function contribute(client: PluginClientContext) {
     rpc: client.rpc.bind(client),
     lookup: (serverId) => getPaseoClient(serverId) as HostApi,
     memory,
+    // New projects join the current Space of the window in use. Phones do not hide projects,
+    // so their current Space says nothing about where someone is working.
+    placeNew: web ? () => document.hasFocus() : undefined,
   });
   const switcher = createSwitcher(store, { keyboard: web, shortcut: desktopMac });
   const cleanups = [
