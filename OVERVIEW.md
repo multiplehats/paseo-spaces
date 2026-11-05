@@ -4,7 +4,8 @@ and the open chat stays where it is.
 
 **Desktop and web only, for now.** Paseo's phone app doesn't let plugins change its sidebar, so
 on a phone every project stays visible. The Spaces row there opens the screen where you sort
-projects into Spaces.
+projects into Spaces. If you don't want the row on your phone, turn it off in the phone's
+Settings, Sidebar, Header. That setting is kept per device, so the desktop keeps its switcher.
 
 ## Switching
 

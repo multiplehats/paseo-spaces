@@ -38,6 +38,8 @@ sections.
 - **Phones (the native apps)** get a plain "Spaces" row instead, which opens the manage screen.
   Paseo gives plugins no way to hide sidebar rows there, so switching would change nothing.
   The row keeps the switcher's id, so where it sits in Settings, Sidebar carries over.
+  Paseo keeps those Sidebar settings per device, so hiding the row on a phone leaves it on the
+  desktop; the manage screen on phones says where to turn it off.
 - Pressing it opens a popover (a bottom sheet on compact layouts) with:
   - every Space, the current one checked; on keyboard clients each of the first nine shows the
     digit that picks it

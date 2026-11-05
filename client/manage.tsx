@@ -88,7 +88,8 @@ export function createManageScreen(store: Store, { phone = false }: ManageOption
         {phone ? (
           <Text style={{ color: colors.foregroundMuted, fontSize: 13, lineHeight: 19 }}>
             Sort projects into Spaces here. This phone's sidebar shows every project; the desktop
-            and web apps show one Space at a time.
+            and web apps show one Space at a time. To take the Spaces row off this phone, turn it
+            off in Settings, Sidebar, Header. Other devices keep it.
           </Text>
         ) : null}
         {error ? <Text style={{ color: colors.statusDanger }}>{error}</Text> : null}
