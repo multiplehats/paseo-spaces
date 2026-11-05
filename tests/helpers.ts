@@ -6,8 +6,9 @@ export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve
 
 /** Host settings with revision checks, as the daemon keeps them. Writes take `writeMs`. */
 export function fakeSettings(initial: unknown = {}) {
-  const host = { values: initial, revision: 1, writes: 0, offline: false, writeMs: 0 };
+  const host = { values: initial, revision: 1, reads: 0, writes: 0, offline: false, writeMs: 0 };
   const rpc = (async (contract: { name: string }, input: { revision: string; values: unknown }) => {
+    if (contract.name === "settings.layout.read") host.reads++;
     if (host.offline) throw new Error("Transport not connected");
     if (contract.name === "settings.layout.read")
       return { status: "ready", revision: String(host.revision), values: host.values };

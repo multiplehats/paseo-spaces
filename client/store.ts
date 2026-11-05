@@ -42,7 +42,14 @@ export interface StoreOptions {
    * clients that never should; the client the person is using should answer true.
    */
   placeNew?: () => boolean;
+  /**
+   * Waits between attempts at loading Spaces before a failure shows. A host reached through
+   * another host can take a while to reconnect, so this is about 45 seconds in all.
+   */
+  retryDelays?: readonly number[];
 }
+
+const RETRY_DELAYS = [1_000, 2_000, 4_000, 8_000, 15_000, 15_000];
 
 export type Store = ReturnType<typeof createStore>;
 
@@ -53,7 +60,13 @@ interface Arrival {
   viewKey: string;
 }
 
-export function createStore({ rpc, lookup, memory, placeNew }: StoreOptions) {
+export function createStore({
+  rpc,
+  lookup,
+  memory,
+  placeNew,
+  retryDelays = RETRY_DELAYS,
+}: StoreOptions) {
   const contract = settingsRpc(layoutSettings.id);
   const listeners = new Set<() => void>();
   const hosts = new Set<string>();
@@ -68,7 +81,9 @@ export function createStore({ rpc, lookup, memory, placeNew }: StoreOptions) {
   let placeAgain = false;
   let writes: Promise<unknown> = Promise.resolve();
   let revision: string | null = null;
-  let loading: Promise<void> | null = null;
+  let loading: Promise<string | null> | null = null;
+  let connecting = false;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let stopped = false;
   let snapshot: Snapshot = {
     status: "loading",
@@ -89,26 +104,56 @@ export function createStore({ rpc, lookup, memory, placeNew }: StoreOptions) {
     for (const listener of listeners) listener();
   }
 
-  async function readLayout() {
-    try {
-      const result = await rpc(contract.read, {});
-      if (result.status !== "ready") throw new Error(result.error);
-      revision = result.revision;
-      set({ status: "ready", error: null, layout: LayoutSchema.parse(result.values) });
-    } catch (error) {
-      set({
-        status: snapshot.status === "ready" ? "ready" : "error",
-        error: message(error, "Spaces could not be loaded."),
-      });
-    }
-  }
-
-  /** Reload the layout; a reload already under way is shared, not repeated. */
-  function reload() {
-    loading ??= readLayout().finally(() => {
+  /** Read the layout once. A read already under way is shared. Resolves to why it failed. */
+  function read() {
+    loading ??= (async () => {
+      try {
+        const result = await rpc(contract.read, {});
+        if (result.status !== "ready") throw new Error(result.error);
+        revision = result.revision;
+        set({ status: "ready", error: null, layout: LayoutSchema.parse(result.values) });
+        return null;
+      } catch (error) {
+        return message(error, "Spaces could not be loaded.");
+      }
+    })().finally(() => {
       loading = null;
     });
     return loading;
+  }
+
+  /** Reload, and say why if it fails. */
+  async function reload() {
+    const problem = await read();
+    if (problem) set({ status: snapshot.status === "ready" ? "ready" : "error", error: problem });
+  }
+
+  /** Reload in the background. A failure changes nothing: the last layout stays, unremarked. */
+  async function refresh() {
+    if (!connecting) await read();
+  }
+
+  /**
+   * Load Spaces, trying again quickly while the host connection comes up, and say it failed
+   * only once every attempt has.
+   */
+  function connect() {
+    if (stopped || connecting) return;
+    connecting = true;
+    if (snapshot.status !== "ready") set({ status: "loading", error: null });
+    let attempt = 0;
+    const tryOnce = async () => {
+      retryTimer = null;
+      const problem = await read();
+      if (stopped) return;
+      if (problem && attempt < retryDelays.length) {
+        retryTimer = setTimeout(() => void tryOnce(), retryDelays[attempt++]);
+        return;
+      }
+      connecting = false;
+      if (problem && snapshot.status !== "ready") set({ status: "error", error: problem });
+    };
+    void tryOnce();
   }
 
   /** Writes go one at a time, so a write made in the background never races the person's. */
@@ -138,7 +183,7 @@ export function createStore({ rpc, lookup, memory, placeNew }: StoreOptions) {
           return true;
         }
         // Reload first: a successful reload clears errors, and this one should stay visible.
-        if (result.status === "conflict") await reload();
+        if (result.status === "conflict") await read();
         set({ saving: false, error: conflictMessage(result) });
         return false;
       } catch (error) {
@@ -169,7 +214,7 @@ export function createStore({ rpc, lookup, memory, placeNew }: StoreOptions) {
         } catch {
           return false;
         }
-        await reload();
+        await read();
       }
       return false;
     });
@@ -265,6 +310,13 @@ export function createStore({ rpc, lookup, memory, placeNew }: StoreOptions) {
       };
     },
     reload,
+    /** Try loading Spaces again, quickly at first, as when they first load. */
+    retry: connect,
+    /** The app is in use again: catch up now, or start loading again if Spaces never loaded. */
+    resume() {
+      if (snapshot.status === "ready") void refresh();
+      else connect();
+    },
     select,
     step(delta: number) {
       select(stepFrom(snapshot.layout, snapshot.current, delta));
@@ -323,14 +375,16 @@ export function createStore({ rpc, lookup, memory, placeNew }: StoreOptions) {
     },
     /** Load now and refresh every `intervalMs`, so changes from other clients arrive. */
     start(intervalMs = 15_000) {
-      void reload();
+      if (snapshot.status === "ready") void refresh();
+      else connect();
       const timer = setInterval(() => {
-        void reload();
+        void refresh();
         void loadPlacements(hosts);
         void place();
       }, intervalMs);
       return () => {
         clearInterval(timer);
+        if (retryTimer) clearTimeout(retryTimer);
         stopped = true;
         listeners.clear();
       };

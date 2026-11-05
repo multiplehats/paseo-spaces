@@ -43,7 +43,14 @@ sections.
   - Remove "X"…, a confirmation: "Remove “X”? Its projects move to Y." with Remove and Cancel
     (Cancel holds focus). Disabled when only one Space is left.
   - Manage spaces…, which opens the manage screen
-- A load or save error shows in the popover with a way to retry.
+- Spaces load when the app starts. A host reached through another host (a phone paired with
+  one host, using a plugin on a second) can take a while to reconnect, so a failed first load
+  is tried again after 1, 2, 4 and 8 seconds, then every 15, and shows as loading meanwhile.
+  Only after about 45 seconds of failures does the popover show the error, with Try again,
+  which starts over.
+- Once loaded, Spaces refresh every 15 seconds and whenever the app comes back to the
+  foreground. A refresh that fails keeps the Spaces as they were and shows nothing.
+- A change that cannot be saved shows why in the popover.
 
 ## Keyboard (desktop app on macOS)
 

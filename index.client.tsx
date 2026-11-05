@@ -1,6 +1,6 @@
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { getPaseoClient } from "@getpaseo/plugin/client";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import { registerCommands } from "./client/commands";
 import type { HostApi } from "./client/hosts";
 import { bindKeys } from "./client/keys";
@@ -51,6 +51,15 @@ function placeOnFocus(store: Store) {
   };
 }
 
+// Back in the foreground (the phone app reopened, a laptop woken), the host connection may have
+// been down: catch up now rather than at the next refresh.
+function resumeOnForeground(store: Store) {
+  const subscription = AppState.addEventListener("change", (state) => {
+    if (state === "active") store.resume();
+  });
+  return () => subscription.remove();
+}
+
 export default function contribute(client: PluginClientContext) {
   const store = createStore({
     rpc: client.rpc.bind(client),
@@ -69,6 +78,7 @@ export default function contribute(client: PluginClientContext) {
     web ? mountSidebar(document, store) : () => {},
     desktopMac ? bindKeys(document, store, switcher.control) : () => {},
     web ? placeOnFocus(store) : () => {},
+    resumeOnForeground(store),
   ];
   return () => {
     for (const cleanup of cleanups.reverse()) cleanup();

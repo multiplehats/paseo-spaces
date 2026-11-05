@@ -219,7 +219,7 @@ export function createSwitcher(store: Store, { keyboard, shortcut }: SwitcherOpt
         <View style={panel}>
           <Text style={body(colors)}>{error ?? "Loading spaces…"}</Text>
           {error ? (
-            <Action colors={colors} label="Try again" onPress={() => void store.reload()} />
+            <Action colors={colors} label="Try again" onPress={() => store.retry()} />
           ) : null}
         </View>
       );

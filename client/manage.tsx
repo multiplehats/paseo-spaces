@@ -70,7 +70,7 @@ export function createManageScreen(store: Store) {
             <SettingsAction
               label={status === "loading" ? "Loading spaces…" : "Spaces could not be loaded"}
               actionLabel="Try again"
-              onPress={() => void store.reload()}
+              onPress={() => store.retry()}
             />
           ) : (
             <>
