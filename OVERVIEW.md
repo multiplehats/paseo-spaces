@@ -2,6 +2,10 @@ Spaces groups the projects in your sidebar into named sets, such as Work, Client
 and shows one set at a time. Switching only changes what the sidebar shows: agents keep running
 and the open chat stays where it is.
 
+**Desktop and web only, for now.** Paseo's phone app doesn't let plugins change its sidebar, so
+on a phone every project stays visible. The Spaces row there opens the screen where you sort
+projects into Spaces.
+
 ## Switching
 
 A Spaces row in the sidebar header shows the current Space. Press it to see every Space and pick

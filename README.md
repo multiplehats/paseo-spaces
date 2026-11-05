@@ -4,6 +4,10 @@ Group the projects in [Paseo](https://paseo.sh)'s sidebar into Spaces, and switc
 from a dropdown or the keyboard. Switching only changes what the sidebar shows: agents keep
 running and the open chat stays put.
 
+**Desktop and web only, for now.** Paseo's phone app doesn't let plugins change its sidebar, so
+on a phone every project stays visible. The Spaces row there opens the screen where you sort
+projects into Spaces.
+
 ![Spaces switcher](assets/switcher.png)
 
 ## What it does
