@@ -35,6 +35,9 @@ sections.
 
 - A header row, built on Paseo's `SidebarRow`, labelled with the current Space and a
   chevrons icon. Users show, hide and reorder it in Settings, Sidebar.
+- **Phones (the native apps)** get a plain "Spaces" row instead, which opens the manage screen.
+  Paseo gives plugins no way to hide sidebar rows there, so switching would change nothing.
+  The row keeps the switcher's id, so where it sits in Settings, Sidebar carries over.
 - Pressing it opens a popover (a bottom sheet on compact layouts) with:
   - every Space, the current one checked; on keyboard clients each of the first nine shows the
     digit that picks it
@@ -62,7 +65,8 @@ sections.
 
 ## Command center (⌘K)
 
-- "Switch to space: X" for every Space, and "New space".
+- "Switch to space: X" for every Space, "New space" and "Manage spaces". Phones get only
+  "New space" and "Manage spaces".
 
 ## Sidebar (desktop app and web)
 

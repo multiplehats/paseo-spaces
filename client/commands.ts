@@ -1,11 +1,17 @@
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import type { Store } from "./store";
 
+export interface CommandOptions {
+  /** Offer "Switch to space" entries; off where switching cannot hide anything (phones). */
+  switching?: boolean;
+}
+
 // ⌘K entries: switch to each Space, create one, or open the manage screen. Re-registered only
 // when the Spaces change, not on every refresh.
 export function registerCommands(
   client: Pick<PluginClientContext, "addCommandCenterItem">,
   store: Pick<Store, "getSnapshot" | "subscribe" | "select" | "create">,
+  { switching = true }: CommandOptions = {},
 ) {
   let registered: (() => void)[] = [];
   let signature: string | null = null;
@@ -20,17 +26,18 @@ export function registerCommands(
     signature = next;
     clear();
     if (status !== "ready") return;
-    for (const space of layout.spaces)
-      registered.push(
-        client.addCommandCenterItem({
-          id: `switch-${space.id}`,
-          title: `Switch to space: ${space.name}`,
-          icon: "Layers",
-          keywords: ["spaces", "switch", space.name],
-          context: "global",
-          onSelect: () => store.select(space.id),
-        }),
-      );
+    if (switching)
+      for (const space of layout.spaces)
+        registered.push(
+          client.addCommandCenterItem({
+            id: `switch-${space.id}`,
+            title: `Switch to space: ${space.name}`,
+            icon: "Layers",
+            keywords: ["spaces", "switch", space.name],
+            context: "global",
+            onSelect: () => store.select(space.id),
+          }),
+        );
     registered.push(
       client.addCommandCenterItem({
         id: "new-space",

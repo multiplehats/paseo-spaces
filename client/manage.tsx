@@ -1,4 +1,4 @@
-import type { PluginScreenProps } from "@getpaseo/plugin/client";
+import type { PluginScreenProps, PluginSidebarItemProps } from "@getpaseo/plugin/client";
 import { getPaseoClient, useHosts } from "@getpaseo/plugin/client";
 import {
   ScrollView,
@@ -6,6 +6,7 @@ import {
   SettingsRow,
   SettingsSection,
   SettingsSelect,
+  SidebarRow,
   TextInput,
 } from "@getpaseo/plugin/client/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -42,7 +43,27 @@ async function loadProjects(hosts: readonly { serverId: string; label: string }[
   return [...merged.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function createManageScreen(store: Store) {
+/**
+ * The sidebar row on phones. Paseo gives plugins no way to hide sidebar rows in the native app,
+ * so switching Spaces would change nothing there; the row opens this screen instead.
+ */
+export function ManageRow({ openScreen, currentScreen }: PluginSidebarItemProps) {
+  return (
+    <SidebarRow
+      icon="Layers"
+      label="Spaces"
+      active={currentScreen?.screenId === "manage"}
+      onPress={() => openScreen({ screenId: "manage" })}
+    />
+  );
+}
+
+export interface ManageOptions {
+  /** Say why this phone's sidebar still shows every project. */
+  phone?: boolean;
+}
+
+export function createManageScreen(store: Store, { phone = false }: ManageOptions = {}) {
   return function ManageScreen({ theme, layout: screen }: PluginScreenProps) {
     const { status, layout, saving, error } = useSyncExternalStore(
       store.subscribe,
@@ -64,6 +85,12 @@ export function createManageScreen(store: Store) {
         style={{ flex: 1, backgroundColor: colors.surface0 }}
         contentContainerStyle={{ padding: screen.compact ? 16 : 24, gap: 24 }}
       >
+        {phone ? (
+          <Text style={{ color: colors.foregroundMuted, fontSize: 13, lineHeight: 19 }}>
+            Sort projects into Spaces here. This phone's sidebar shows every project; the desktop
+            and web apps show one Space at a time.
+          </Text>
+        ) : null}
         {error ? <Text style={{ color: colors.statusDanger }}>{error}</Text> : null}
         <SettingsSection title="Spaces">
           {status !== "ready" ? (

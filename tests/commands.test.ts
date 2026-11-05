@@ -52,3 +52,22 @@ test("Command center: one entry per Space plus New space and Manage spaces", asy
   unregister();
   assert.equal(items.size, 0);
 });
+
+test("Command center: phones get no Switch to space entries, since switching hides nothing there", async () => {
+  const { store } = await readyStore({
+    spaces: [
+      { id: "s1", name: "Main" },
+      { id: "s2", name: "Clients" },
+    ],
+  });
+  const titles: string[] = [];
+  const client = {
+    addCommandCenterItem(item: Item) {
+      titles.push(item.title);
+      return () => {};
+    },
+  } as unknown as Parameters<typeof registerCommands>[0];
+  const unregister = registerCommands(client, store, { switching: false });
+  assert.deepEqual(titles, ["New space", "Manage spaces"]);
+  unregister();
+});

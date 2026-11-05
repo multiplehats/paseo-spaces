@@ -4,12 +4,14 @@ import { AppState, Platform } from "react-native";
 import { registerCommands } from "./client/commands";
 import type { HostApi } from "./client/hosts";
 import { bindKeys } from "./client/keys";
-import { createManageScreen } from "./client/manage";
+import { createManageScreen, ManageRow } from "./client/manage";
 import { mountSidebar } from "./client/sidebar";
 import { createStore, type Memory, type Store } from "./client/store";
 import { createSwitcher } from "./client/switcher";
 
 const web = Platform.OS === "web" && typeof document !== "undefined";
+// The native apps: Spaces cannot hide sidebar rows there, so there is nothing to switch.
+const phone = Platform.OS !== "web";
 const desktopMac =
   web &&
   typeof navigator !== "undefined" &&
@@ -72,9 +74,18 @@ export default function contribute(client: PluginClientContext) {
   const switcher = createSwitcher(store, { keyboard: web, shortcut: desktopMac });
   const cleanups = [
     store.start(),
-    client.addSidebarHeaderItem({ id: "switcher", title: "Spaces", Component: switcher.Item }),
-    client.addScreen({ id: "manage", title: "Spaces", Component: createManageScreen(store) }),
-    registerCommands(client, store),
+    // Same id on every platform, so where someone put the row in Settings still holds.
+    client.addSidebarHeaderItem({
+      id: "switcher",
+      title: "Spaces",
+      Component: phone ? ManageRow : switcher.Item,
+    }),
+    client.addScreen({
+      id: "manage",
+      title: "Spaces",
+      Component: createManageScreen(store, { phone }),
+    }),
+    registerCommands(client, store, { switching: !phone }),
     web ? mountSidebar(document, store) : () => {},
     desktopMac ? bindKeys(document, store, switcher.control) : () => {},
     web ? placeOnFocus(store) : () => {},

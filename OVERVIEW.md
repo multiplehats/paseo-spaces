@@ -24,7 +24,8 @@ sorted otherwise belong to the first Space.
 On the desktop app and the web app, projects in other Spaces are hidden, the project heading
 shows the current Space's name, and pinned workspaces follow their project, including pinned
 workspaces on other hosts. When none of the pinned workspaces belong to the current Space, the
-Pinned section hides. On phones the sidebar is not filtered; use the manage screen there.
+Pinned section hides. On phones the sidebar is not filtered, so the Spaces row opens the manage
+screen instead, where you sort projects.
 
 ## Setup
 

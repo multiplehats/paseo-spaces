@@ -16,7 +16,8 @@ running and the open chat stays put.
 - **Sidebar.** Projects in other Spaces are hidden, the project heading shows the Space's name,
   and pinned workspaces follow their project. Each project's menu gets a "Move to space" section.
 - **Manage screen.** Every Space and every project on every connected host, each with a Space
-  picker. On phones, where the sidebar can't be filtered, this is how you sort projects.
+  picker. On phones, where the sidebar can't be filtered, the Spaces row opens this screen
+  instead of a switcher.
 
 Projects are matched by the key Paseo's sidebar uses for them, so a project checked out on two
 hosts belongs to one Space. A project you create joins the Space you are in; projects you have
