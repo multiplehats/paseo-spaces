@@ -27,9 +27,28 @@ const CSS = `
 [${OWNED}="move"] [role=alert]{padding:2px 8px 2px 38px;font-size:12px;color:#e5484d}
 `;
 
+// The address Paseo gives an open workspace.
+const WORKSPACE_PATH = /^\/h\/([^/]+)\/workspace\/([^/]+)\/?$/;
+/** On a row being unfolded, so another plugin doing the same does not press it closed again. */
+const UNFOLDING = "data-paseo-unfolding";
+const UNFOLDING_MS = 1_500;
+const RENDER_MS = 150;
+
 export interface SidebarOptions {
   /** Calls `onChange` when the sidebar may have re-rendered. Defaults to a MutationObserver. */
   observe?: (onChange: () => void) => { disconnect(): void };
+  /** The address the app is showing. Defaults to the window's. */
+  path?: () => string;
+}
+
+function workspaceAt(path: string) {
+  const match = WORKSPACE_PATH.exec(path);
+  if (!match) return null;
+  try {
+    return { serverId: decodeURIComponent(match[1]), workspaceId: decodeURIComponent(match[2]) };
+  } catch {
+    return null;
+  }
 }
 
 const keyOf = (element: Element, prefix: string) =>
@@ -55,6 +74,12 @@ export function mountSidebar(doc: Document, store: Store, options: SidebarOption
   let heading: { text: Text; original: string } | null = null;
   let failedMove: string | null = null;
   let shown: string | null = null;
+  const pathNow = options.path ?? (() => doc.defaultView?.location?.pathname ?? "");
+  const placeOf = (path: string) => {
+    const workspace = workspaceAt(path);
+    return workspace ? `${workspace.serverId}:${workspace.workspaceId}` : path;
+  };
+  let followed = placeOf(pathNow());
   let scheduled = false;
   let stopped = false;
 
@@ -212,6 +237,48 @@ export function mountSidebar(doc: Document, store: Store, options: SidebarOption
     );
   }
 
+  function rowFor(prefix: string, key: string) {
+    for (const row of doc.querySelectorAll(`[data-testid^="${prefix}"]`))
+      if (keyOf(row, prefix) === key) return row as HTMLElement;
+    return null;
+  }
+
+  function unfold(project: string, workspaceKey: string) {
+    const row = rowFor(PROJECT_ROW, project);
+    const group = row?.closest('[role="group"]');
+    // A folded project renders no workspace rows, and pressing an open one would fold it.
+    if (
+      row &&
+      group &&
+      !rowFor(WORKSPACE_ROW, workspaceKey) &&
+      !group.querySelector(`[data-testid^="${WORKSPACE_ROW}"]`) &&
+      !row.hasAttribute(UNFOLDING)
+    ) {
+      row.setAttribute(UNFOLDING, "");
+      row.click();
+      setTimeout(() => row.removeAttribute(UNFOLDING), UNFOLDING_MS);
+    }
+    // Once the sidebar has rendered, a long one may need to scroll to the row.
+    setTimeout(
+      () => rowFor(WORKSPACE_ROW, workspaceKey)?.scrollIntoView?.({ block: "nearest" }),
+      RENDER_MS,
+    );
+  }
+
+  // A workspace opened from outside the sidebar (⌘K, a notification, another plugin) is shown
+  // here. Only a change of workspace counts: switching Spaces must not snap back to the open one.
+  function follow() {
+    const path = pathNow();
+    const place = placeOf(path);
+    if (place === followed) return;
+    followed = place;
+    const workspace = workspaceAt(path);
+    if (!workspace) return;
+    void store.reveal(workspace.serverId, workspace.workspaceId).then((project) => {
+      if (project !== null && !stopped) unfold(project, place);
+    });
+  }
+
   function apply() {
     scheduled = false;
     if (stopped) return;
@@ -226,6 +293,7 @@ export function mountSidebar(doc: Document, store: Store, options: SidebarOption
     showHeading(snapshot);
     decorateMenus(snapshot);
     slide(snapshot);
+    follow();
   }
   function schedule() {
     if (scheduled || stopped) return;

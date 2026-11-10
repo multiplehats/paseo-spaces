@@ -11,6 +11,7 @@ import {
   layoutSettings,
   removeSpace,
   renameSpace,
+  spaceFor,
   stepFrom,
 } from "../shared/layout";
 import { type HostLookup, listHostPlacements, viewKeys } from "./hosts";
@@ -349,6 +350,23 @@ export function createStore({
       const added = [...serverIds].filter((id) => !hosts.has(id));
       for (const id of added) hosts.add(id);
       if (added.length) void loadPlacements(added);
+    },
+    /**
+     * Show the Space this workspace's project is in, and say which project that is. An unknown
+     * workspace changes nothing. A project no listing has seen was only just created, so it is
+     * left to be placed, which puts it in the current Space.
+     */
+    async reveal(serverId: string, workspaceId: string): Promise<string | null> {
+      const key = `${serverId}:${workspaceId}`;
+      if (snapshot.placements[key] === undefined) {
+        hosts.add(serverId);
+        await loadPlacements([serverId]);
+      }
+      const project = snapshot.placements[key];
+      if (project === undefined || snapshot.status !== "ready") return null;
+      if (snapshot.layout.assignments[project] !== undefined || listed.has(project))
+        select(spaceFor(snapshot.layout, project));
+      return project;
     },
     /** The hosts online now. One not listed before is listed straight away. */
     setHosts(serverIds: Iterable<string>) {
