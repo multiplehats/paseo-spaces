@@ -84,6 +84,10 @@ sections.
   checked. Choosing one saves and closes the menu; a failed save keeps it open with the error.
 - While the layout cannot be loaded, nothing is hidden.
 - Stopping the plugin removes everything it added and shows every row again.
+- Opening a workspace from outside the sidebar (the command center, a notification, another
+  plugin) switches to the Space holding its project and unfolds that project. Only a change of
+  workspace counts, so switching Spaces leaves the open chat alone. An unknown workspace changes
+  nothing, and a project just created is left to join the current Space.
 
 ## Manage screen (all clients)
 

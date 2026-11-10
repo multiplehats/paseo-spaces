@@ -17,6 +17,9 @@ On the desktop app for macOS, ⌘J opens the switcher and the digits 1 to 9 then
 returning focus to where you were. ⌘⌥↑ and ⌘⌥↓ go to the previous or next Space. The command
 center (⌘K) lists "Switch to space" for every Space, "New space" and "Manage spaces".
 
+Opening a workspace from the command center, a notification or another plugin switches to its
+Space and unfolds its project on the desktop and web apps.
+
 ## Sorting projects
 
 Each project's menu in the sidebar has a "Move to space" section. The manage screen lists every
