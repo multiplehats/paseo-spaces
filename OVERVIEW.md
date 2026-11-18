@@ -27,6 +27,10 @@ project on every connected host with a Space picker for each. A project checked 
 belongs to one Space. A project you create joins the Space you are in, and projects you have not
 sorted otherwise belong to the first Space.
 
+The manage screen also sets the order of your Spaces, with the arrows beside each one. The
+switcher, the digits 1 to 9 and ⌘⌥↑ and ⌘⌥↓ follow that order. Reordering never moves a project
+to another Space.
+
 ## What changes in the sidebar
 
 On the desktop app and the web app, projects in other Spaces are hidden, the project heading

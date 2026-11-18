@@ -122,3 +122,18 @@ test("Sidebar: tracked hosts load placements; an unreachable host is not an erro
   await settle();
   assert.equal(lookups.length, 2, "an already tracked host is not looked up again");
 });
+
+test("Manage screen: moving a Space saves the new order and keeps the current Space", async () => {
+  const { store, settings } = await readyStore(saved);
+  store.select("s2");
+  assert.equal(await store.move("s3", -2), true);
+  const snap = store.getSnapshot();
+  assert.deepEqual(
+    snap.layout.spaces.map((space) => space.id),
+    ["s3", "s1", "s2"],
+  );
+  assert.equal(snap.current, "s2");
+  assert.equal(settings.host.writes, 1);
+  store.step(-1);
+  assert.equal(store.getSnapshot().current, "s1", "stepping follows the new order");
+});

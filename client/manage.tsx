@@ -1,6 +1,7 @@
 import type { PluginScreenProps, PluginSidebarItemProps } from "@getpaseo/plugin/client";
 import { getPaseoClient, useHosts } from "@getpaseo/plugin/client";
 import {
+  Icon,
   ScrollView,
   SettingsAction,
   SettingsRow,
@@ -102,10 +103,11 @@ export function createManageScreen(store: Store, { phone = false }: ManageOption
             />
           ) : (
             <>
-              {layout.spaces.map((space) => (
+              {layout.spaces.map((space, index) => (
                 <SpaceRow
                   key={space.id}
                   space={space}
+                  index={index}
                   layout={layout}
                   count={list.filter((p) => spaceFor(layout, p.viewKey) === space.id).length}
                   counted={projects.isSuccess}
@@ -148,9 +150,10 @@ export function createManageScreen(store: Store, { phone = false }: ManageOption
   };
 }
 
-/** One row per Space: rename and remove happen in place. */
+/** One row per Space: reorder, rename and remove happen in place. */
 function SpaceRow(props: {
   space: Space;
+  index: number;
   layout: Layout;
   count: number;
   counted: boolean;
@@ -226,6 +229,24 @@ function SpaceRow(props: {
   return (
     <SettingsRow label={space.name} hint={props.counted ? projects : undefined}>
       <View style={{ flexDirection: "row", gap: 8 }}>
+        {removable ? (
+          <>
+            <Button
+              colors={colors}
+              icon="ArrowUp"
+              label={`Move “${space.name}” up`}
+              disabled={props.disabled || props.index === 0}
+              onPress={() => void store.move(space.id, -1)}
+            />
+            <Button
+              colors={colors}
+              icon="ArrowDown"
+              label={`Move “${space.name}” down`}
+              disabled={props.disabled || props.index === props.layout.spaces.length - 1}
+              onPress={() => void store.move(space.id, 1)}
+            />
+          </>
+        ) : null}
         <Button
           colors={colors}
           label="Rename"
@@ -251,11 +272,33 @@ function SpaceRow(props: {
 function Button(props: {
   colors: Colors;
   label: string;
+  /** Show this icon instead of the label, which then only names the button. */
+  icon?: string;
   danger?: boolean;
   disabled?: boolean;
   onPress(): void | Promise<void>;
 }) {
   const { colors } = props;
+  if (props.icon)
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={props.label}
+        disabled={props.disabled}
+        onPress={() => void props.onPress()}
+        style={({ pressed }) => ({
+          paddingHorizontal: 8,
+          justifyContent: "center",
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: pressed ? colors.surface2 : "transparent",
+          opacity: props.disabled ? 0.35 : 1,
+        })}
+      >
+        <Icon name={props.icon} size={14} color={colors.foreground} />
+      </Pressable>
+    );
   return (
     <Pressable
       accessibilityRole="button"

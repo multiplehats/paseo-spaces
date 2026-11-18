@@ -9,6 +9,7 @@ import {
   LayoutError,
   LayoutSchema,
   layoutSettings,
+  moveSpace,
   removeSpace,
   renameSpace,
   spaceFor,
@@ -343,6 +344,8 @@ export function createStore({
       if (ok && snapshot.current === id) select(target);
       return ok;
     },
+    /** Move a Space `delta` places along the list. Its projects stay in it. */
+    move: (id: string, delta: number) => save((layout) => moveSpace(layout, id, delta)),
     assign: (viewKey: string, spaceId: string) =>
       save((layout) => assign(layout, viewKey, spaceId)),
     /** Look pinned rows up on these hosts too; new hosts load straight away. */

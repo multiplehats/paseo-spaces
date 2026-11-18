@@ -6,6 +6,7 @@ import {
   defaultLayout,
   LayoutError,
   LayoutSchema,
+  moveSpace,
   removalTarget,
   removeSpace,
   renameSpace,
@@ -96,4 +97,41 @@ test("Keyboard: stepping stops at the first and last Space", () => {
   assert.equal(stepFrom(three(), "s1", 1), "s2");
   assert.equal(stepFrom(three(), "s3", 1), "s3");
   assert.equal(stepFrom(three(), "gone", 1), "s2", "an unknown current Space counts as the first");
+});
+
+const order = (layout: { spaces: { id: string }[] }) => layout.spaces.map((space) => space.id);
+
+test("Data: a Space moves along the list, stopping at either end", () => {
+  assert.deepEqual(order(moveSpace(three(), "s3", -1)), ["s1", "s3", "s2"]);
+  assert.deepEqual(order(moveSpace(three(), "s2", 1)), ["s1", "s3", "s2"]);
+  assert.deepEqual(order(moveSpace(three(), "s3", -5)), ["s3", "s1", "s2"]);
+  const same = three();
+  assert.equal(moveSpace(same, "s1", -1), same, "already first");
+  assert.equal(moveSpace(same, "s3", 1), same, "already last");
+  assert.throws(() => moveSpace(three(), "nope", 1), LayoutError);
+});
+
+test("Data: reordering leaves every project in its Space, unsorted ones too", () => {
+  const moved = moveSpace(three(), "s1", 1);
+  assert.deepEqual(order(moved), ["s2", "s1", "s3"]);
+  assert.equal(spaceFor(moved, "never-seen"), "s1", "unsorted projects stay in Main");
+  assert.equal(spaceFor(moved, "ghost"), "s1");
+  assert.equal(spaceFor(moved, "remote:github.com/acme/web"), "s2");
+  assert.deepEqual(LayoutSchema.parse(moved), moved, "the reordered layout can be stored");
+
+  const again = moveSpace(moved, "s3", -2);
+  assert.equal(spaceFor(again, "never-seen"), "s1", "and stay there through later moves");
+  const back = moveSpace(moved, "s1", -1);
+  assert.equal(back.home, undefined, "back on top, nothing extra is kept");
+  assert.deepEqual(back, three());
+});
+
+test("Data: removing the Space unsorted projects are in moves them with the rest", () => {
+  const moved = moveSpace(three(), "s1", 2);
+  const { layout, target } = removeSpace(moved, "s1");
+  assert.equal(target, "s2");
+  assert.equal(spaceFor(layout, "never-seen"), "s2");
+  assert.equal(layout.home, undefined);
+  const kept = removeSpace(moved, "s3").layout;
+  assert.equal(spaceFor(kept, "never-seen"), "s1", "removing another Space changes nothing");
 });
