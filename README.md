@@ -19,7 +19,8 @@ Settings, Sidebar, Header. That setting is kept per device, so the desktop keeps
   goes back to where you were. ⌘⌥↑ and ⌘⌥↓ go to the previous or next Space.
 - **Command center.** ⌘K lists "Switch to space: …", "New space" and "Manage spaces".
 - **Sidebar.** Projects in other Spaces are hidden, the project heading shows the Space's name,
-  and pinned workspaces follow their project. Each project's menu gets a "Move to space" section.
+  and pinned workspaces follow their project. Paseo's jump shortcut (⌘1 to ⌘9 on the Mac app)
+  counts the workspaces of the current Space, so each Space starts again at 1. Each project's menu gets a "Move to space" section.
 - **Manage screen.** Every Space, with arrows to reorder them, and every project on every
   connected host, each with a Space picker. On phones, where the sidebar can't be filtered, the Spaces row opens this screen
   instead of a switcher.
@@ -52,7 +53,7 @@ sidebar would follow whichever loaded first.
   with revision checks so two clients can't overwrite each other.
 - The current Space is per client, remembered in local storage.
 - The switcher, popover and manage screen use Paseo's plugin API. Hiding projects, renaming the
-  heading and the project menu section have no API, so they work on the sidebar's own elements,
+  heading, numbering workspaces and the project menu section have no API, so they work on the sidebar's own elements,
   found by the test IDs Paseo gives them. A Paseo update that changes the sidebar can break
   those parts; the switcher and manage screen keep working.
 - Pinned workspaces are keyed `serverId:workspaceId`. Their project is looked up on their own

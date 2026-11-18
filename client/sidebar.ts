@@ -1,11 +1,13 @@
-// Desktop and web sidebar: hides other Spaces' projects and adds the "Move to space" menu
-// section. Paseo has no API for these, so they work on the sidebar's own elements, found by
+// Desktop and web sidebar: hides other Spaces' projects, numbers the workspaces left for
+// Paseo's jump shortcut, and adds the "Move to space" menu section. Paseo has no API for these, so they work on the sidebar's own elements, found by
 // the test IDs Paseo gives them. Everything added is removed again when the plugin stops.
 import { spaceFor } from "../shared/layout";
 import { parseWorkspaceKey } from "./hosts";
 import type { Snapshot, Store } from "./store";
 
 const HIDDEN = "data-spaces-hidden";
+/** On Paseo's own number badge, and on what our badge covers, while we number the rows. */
+const COVERED = "data-spaces-covered";
 const OWNED = "data-spaces-owned";
 const PROJECT_ROW = "sidebar-project-row-";
 const WORKSPACE_ROW = "sidebar-workspace-row-";
@@ -17,6 +19,7 @@ const HEADING_MARKER = '[data-testid="sidebar-display-preferences-menu"]';
 
 const CSS = `
 [${HIDDEN}]{display:none!important}
+[${COVERED}]{visibility:hidden!important}
 [${OWNED}="move"]{display:flex;flex-direction:column;gap:1px;margin-top:4px;padding:4px 0 2px;border-top:1px solid rgba(128,128,128,.25)}
 [${OWNED}="move"]>span{padding:4px 8px 2px 38px;font-size:11px;opacity:.6}
 [${OWNED}="move"] button{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px 6px 14px;border:0;border-radius:6px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
@@ -34,7 +37,52 @@ const UNFOLDING = "data-paseo-unfolding";
 const UNFOLDING_MS = 1_500;
 const RENDER_MS = 150;
 
+/** The modifier Paseo's "jump to workspace" shortcut uses with a digit on this client. */
+export type JumpModifier = "meta" | "ctrl" | "alt";
+const MODIFIERS = ["meta", "ctrl", "alt", "shift"] as const;
+const JUMPS = 9;
+
+/**
+ * Paseo's number badge inside a workspace row: a lone digit in a box of its own, laid over the
+ * end of the row. Returns that overlay.
+ */
+function badgeIn(row: Element): Element | null {
+  for (const leaf of row.querySelectorAll("*")) {
+    if (leaf.children.length > 0 || !/^[1-9]$/.test(leaf.textContent ?? "")) continue;
+    const overlay = leaf.parentElement?.parentElement;
+    if (!overlay || overlay === row || !row.contains(overlay) || overlay.hasAttribute(OWNED))
+      continue;
+    if (leaf.parentElement!.children.length !== 1 || overlay.children.length !== 1) continue;
+    // Last in its parent, but for a badge of ours beside it.
+    const after = overlay.nextElementSibling;
+    if (!after || (after.hasAttribute(OWNED) && !after.nextElementSibling)) return overlay;
+  }
+  return null;
+}
+
+/** Child positions leading from `from` down to `to`. */
+function pathBetween(from: Element, to: Element): number[] {
+  const path: number[] = [];
+  for (let node = to; node !== from; node = node.parentElement!)
+    path.unshift([...node.parentElement!.children].indexOf(node));
+  return path;
+}
+function walk(from: Element, path: readonly number[]): Element | null {
+  let node: Element | null = from;
+  for (const index of path) node = node?.children[index] ?? null;
+  return node;
+}
+
 export interface SidebarOptions {
+  /**
+   * Number the workspaces of the current Space for Paseo's jump shortcut, which uses this
+   * modifier with a digit. Left out, Paseo's own numbers stay.
+   */
+  jump?: JumpModifier;
+  /** Where the jump keys are listened for. Defaults to the window, where Paseo listens. */
+  keyTarget?: Pick<EventTarget, "addEventListener" | "removeEventListener">;
+  /** The event being dispatched right now. Defaults to the window's. */
+  currentEvent?: () => Event | undefined;
   /** Calls `onChange` when the sidebar may have re-rendered. Defaults to a MutationObserver. */
   observe?: (onChange: () => void) => { disconnect(): void };
   /** The address the app is showing. Defaults to the window's. */
@@ -237,6 +285,146 @@ export function mountSidebar(doc: Document, store: Store, options: SidebarOption
     );
   }
 
+  // --- Workspace numbers -------------------------------------------------------------------
+  // Paseo numbers the first nine workspaces of the whole sidebar, hidden ones included, so in
+  // a Space further down the numbers start late or never come. While rows are hidden we take
+  // the shortcut over: the digits count the rows this Space shows.
+
+  /** The workspace rows on show, top to bottom, when some are hidden; otherwise null. */
+  function shownRows(): HTMLElement[] | null {
+    if (store.getSnapshot().status !== "ready") return null;
+    const all = doc.querySelectorAll(`[data-testid^="${WORKSPACE_ROW}"]`);
+    const rows: HTMLElement[] = [];
+    const seen = new Set<string>();
+    for (const row of all) {
+      const key = keyOf(row, WORKSPACE_ROW);
+      if (row.closest(`[${HIDDEN}]`) || seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row as HTMLElement);
+    }
+    return rows.length < all.length ? rows : null;
+  }
+
+  /** The digit of a jump key press that is ours to answer, or 0. */
+  function jumpDigit(event: Event | undefined): number {
+    const key = event as KeyboardEvent | undefined;
+    if (!options.jump || !key || key.type !== "keydown" || key.isComposing) return 0;
+    const digit = /^Digit([1-9])$/.exec(key.code ?? "");
+    if (!digit) return 0;
+    for (const modifier of MODIFIERS)
+      if (Boolean(key[`${modifier}Key`]) !== (modifier === options.jump)) return 0;
+    // Paseo leaves Ctrl with a digit to a focused terminal.
+    const target = key.target as Element | null;
+    if (options.jump === "ctrl" && target?.closest?.('[data-testid="terminal-surface"], .xterm'))
+      return 0;
+    return shownRows() ? Number(digit[1]) : 0;
+  }
+
+  function onJump(event: Event) {
+    const digit = jumpDigit(event);
+    if (!digit) return;
+    // Paseo must not also jump, to the workspace it numbers this way.
+    event.stopImmediatePropagation();
+    const row = shownRows()?.[digit - 1];
+    if (!row) return;
+    event.preventDefault();
+    row.click();
+  }
+
+  // Paseo's key listener is on the window too and may run before ours; it has no way for a
+  // plugin to claim a key. It does stand aside while the page is not visible, so for the length
+  // of a jump key press that is ours, the page says it is hidden.
+  function claimJumps() {
+    const view = doc.defaultView;
+    const target = options.keyTarget ?? view;
+    if (!options.jump || !target) return () => {};
+    const current = options.currentEvent ?? (() => view?.event);
+    let inherited: PropertyDescriptor | undefined;
+    for (let proto = Object.getPrototypeOf(doc); proto && !inherited; ) {
+      inherited = Object.getOwnPropertyDescriptor(proto, "visibilityState");
+      proto = Object.getPrototypeOf(proto);
+    }
+    let claimed = false;
+    try {
+      Object.defineProperty(doc, "visibilityState", {
+        configurable: true,
+        get: () => (jumpDigit(current()) ? "hidden" : (inherited?.get?.call(doc) ?? "visible")),
+      });
+      claimed = true;
+    } catch {
+      /* Not allowed: Paseo may jump first, and our jump then follows it. */
+    }
+    target.addEventListener("keydown", onJump, true);
+    return () => {
+      target.removeEventListener("keydown", onJump, true);
+      if (claimed) delete (doc as unknown as Record<string, unknown>).visibilityState;
+    };
+  }
+
+  const badges = new Set<Element>();
+  const covered = new Set<Element>();
+  function cover(element: Element, keep: Set<Element>) {
+    keep.add(element);
+    if (!element.hasAttribute(COVERED)) element.setAttribute(COVERED, "");
+    covered.add(element);
+  }
+  function clearNumbers(keepBadges = new Set<Element>(), keepCovered = new Set<Element>()) {
+    for (const badge of badges)
+      if (!keepBadges.has(badge)) {
+        badge.remove();
+        badges.delete(badge);
+      }
+    for (const element of covered)
+      if (!keepCovered.has(element)) {
+        element.removeAttribute(COVERED);
+        covered.delete(element);
+      }
+  }
+
+  // Paseo shows its badges while the jump modifier is held. Ours go up with them: a copy of
+  // Paseo's badge on each of the first nine rows on show, Paseo's own covered.
+  function numberRows() {
+    const rows = options.jump ? shownRows() : null;
+    const all = rows ? [...doc.querySelectorAll(`[data-testid^="${WORKSPACE_ROW}"]`)] : [];
+    const theirs = new Map<Element, Element>();
+    for (const row of all) {
+      const badge = badgeIn(row);
+      if (badge) theirs.set(row, badge);
+    }
+    const sample = theirs.entries().next().value;
+    if (!rows || !sample) return clearNumbers();
+    const [sampleRow, sampleBadge] = sample;
+    // Where a row keeps its badge, and what Paseo fades under it: the row's trailing details.
+    const place = pathBetween(sampleRow, sampleBadge.parentElement!);
+    const trailingOf = (content: Element) =>
+      content.firstElementChild?.lastElementChild?.firstElementChild?.lastElementChild ?? null;
+    const keepBadges = new Set<Element>();
+    const keepCovered = new Set<Element>();
+    rows.forEach((row, index) => {
+      const their = theirs.get(row);
+      if (their) cover(their, keepCovered);
+      if (index >= JUMPS) return;
+      const content = their?.parentElement ?? walk(row, place);
+      if (!content) return;
+      let badge = [...content.children].find((child) => child.getAttribute(OWNED) === "number");
+      if (!badge) {
+        badge = sampleBadge.cloneNode(true) as Element;
+        badge.removeAttribute(COVERED);
+        badge.setAttribute(OWNED, "number");
+        badge.setAttribute("aria-hidden", "true");
+        content.appendChild(badge);
+        badges.add(badge);
+      }
+      keepBadges.add(badge);
+      const digit = badge.firstElementChild!.firstElementChild!;
+      if (digit.textContent !== String(index + 1)) digit.textContent = String(index + 1);
+      // A row Paseo left unnumbered still shows its details where the badge goes.
+      const trailing = their ? null : trailingOf(content);
+      if (trailing && trailing !== badge && !trailing.contains(badge)) cover(trailing, keepCovered);
+    });
+    clearNumbers(keepBadges, keepCovered);
+  }
+
   function rowFor(prefix: string, key: string) {
     for (const row of doc.querySelectorAll(`[data-testid^="${prefix}"]`))
       if (keyOf(row, prefix) === key) return row as HTMLElement;
@@ -286,10 +474,12 @@ export function mountSidebar(doc: Document, store: Store, options: SidebarOption
     if (snapshot.status !== "ready") {
       revealAll();
       restoreHeading();
+      clearNumbers();
       return;
     }
     filterProjects(snapshot);
     filterPinned(snapshot);
+    numberRows();
     showHeading(snapshot);
     decorateMenus(snapshot);
     slide(snapshot);
@@ -309,14 +499,17 @@ export function mountSidebar(doc: Document, store: Store, options: SidebarOption
       return observer;
     })();
   const unsubscribe = store.subscribe(schedule);
+  const unclaim = claimJumps();
   apply();
 
   return () => {
     stopped = true;
     observer.disconnect();
     unsubscribe();
+    unclaim();
     revealAll();
     restoreHeading();
+    clearNumbers();
     for (const section of sections) section.remove();
     sections.clear();
     style.remove();

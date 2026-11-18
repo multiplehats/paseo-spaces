@@ -87,6 +87,22 @@ sections.
   paged behind "Show more".
 - Each project's menu gains a "Move to space" section listing every Space, the current one
   checked. Choosing one saves and closes the menu; a failed save keeps it open with the error.
+- **Workspace numbers.** Paseo's "jump to workspace" shortcut (⌘ with 1 to 9 on the Mac app, Ctrl
+  on the other desktop apps, Alt in a browser) numbers the first nine workspaces of the whole
+  sidebar, hidden ones included. While rows are hidden, the digits count the workspaces the
+  current Space shows instead, top to bottom, pinned rows first. A digit with no workspace
+  behind it opens nothing.
+- The number badges Paseo shows while the modifier is held follow: each of the first nine rows on
+  show gets a badge with its number in the Space, and Paseo's own are covered. They go up and
+  come down with Paseo's.
+- With nothing hidden (one Space, or every project in the current one) the shortcut and its
+  badges are left to Paseo. So are keys pressed inside an embedded browser pane.
+- A jump shortcut rebound in Paseo's settings is not followed: the new keys use Paseo's numbers,
+  and the default keys still jump by Space.
+- Paseo has no way for a plugin to claim a key and its listener may run first. It stands aside
+  while the page is not visible, so for the length of a jump key press that is ours the document
+  reports itself hidden. If a Paseo update stops honouring that, Paseo jumps first and ours
+  follows.
 - While the layout cannot be loaded, nothing is hidden.
 - Stopping the plugin removes everything it added and shows every row again.
 - Opening a workspace from outside the sidebar (the command center, a notification, another

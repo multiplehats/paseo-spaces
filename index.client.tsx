@@ -5,18 +5,19 @@ import { registerCommands } from "./client/commands";
 import type { HostApi } from "./client/hosts";
 import { bindKeys } from "./client/keys";
 import { createManageScreen, ManageRow } from "./client/manage";
-import { mountSidebar } from "./client/sidebar";
+import { type JumpModifier, mountSidebar } from "./client/sidebar";
 import { createStore, type Memory, type Store } from "./client/store";
 import { createSwitcher } from "./client/switcher";
 
 const web = Platform.OS === "web" && typeof document !== "undefined";
 // The native apps: Spaces cannot hide sidebar rows there, so there is nothing to switch.
 const phone = Platform.OS !== "web";
-const desktopMac =
-  web &&
-  typeof navigator !== "undefined" &&
-  /Electron\//.test(navigator.userAgent) &&
-  /Mac/.test(navigator.userAgent);
+const agent = typeof navigator === "undefined" ? "" : navigator.userAgent;
+const desktop = web && /Electron\//.test(agent);
+const desktopMac = desktop && /Mac/.test(agent);
+// Paseo's "jump to workspace" shortcut: ⌘ with a digit on the Mac app, Ctrl on the other desktop
+// apps, Alt in a browser.
+const jump: JumpModifier = desktopMac ? "meta" : desktop ? "ctrl" : "alt";
 
 // The current Space is per client, so it lives in this client's storage when there is any.
 const memory: Memory | undefined =
@@ -86,7 +87,7 @@ export default function contribute(client: PluginClientContext) {
       Component: createManageScreen(store, { phone }),
     }),
     registerCommands(client, store, { switching: !phone }),
-    web ? mountSidebar(document, store) : () => {},
+    web ? mountSidebar(document, store, { jump }) : () => {},
     desktopMac ? bindKeys(document, store, switcher.control) : () => {},
     web ? placeOnFocus(store) : () => {},
     resumeOnForeground(store),

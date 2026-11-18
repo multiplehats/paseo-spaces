@@ -36,7 +36,9 @@ to another Space.
 On the desktop app and the web app, projects in other Spaces are hidden, the project heading
 shows the current Space's name, and pinned workspaces follow their project, including pinned
 workspaces on other hosts. When none of the pinned workspaces belong to the current Space, the
-Pinned section hides. On phones the sidebar is not filtered, so the Spaces row opens the manage
+Pinned section hides. Paseo's shortcut for jumping to a workspace by number (⌘1 to ⌘9 on the Mac
+app, Ctrl on other desktop apps, Alt in a browser) counts the workspaces of the current Space, so
+every Space starts again at 1. On phones the sidebar is not filtered, so the Spaces row opens the manage
 screen instead, where you sort projects.
 
 ## Setup
@@ -53,6 +55,6 @@ app's own connection. The Spaces and which project belongs to which are stored i
 plugin settings. The current Space is stored on each device. Spaces makes no network requests of
 its own.
 
-Hiding projects, the heading and the menu section rely on how Paseo's sidebar is built, so a
+Hiding projects, the heading, the workspace numbers and the menu section rely on how Paseo's sidebar is built, so a
 Paseo update can affect them. The switcher and the manage screen use Paseo's plugin API. The
 keyboard shortcuts are not part of Paseo's shortcut list and cannot be changed there.
