@@ -20,8 +20,8 @@ Settings, Sidebar, Header. That setting is kept per device, so the desktop keeps
 - **Command center.** ⌘K lists "Switch to space: …", "New space" and "Manage spaces".
 - **Sidebar.** Projects in other Spaces are hidden, the project heading shows the Space's name,
   and pinned workspaces follow their project. Each project's menu gets a "Move to space" section.
-- **Manage screen.** Every Space and every project on every connected host, each with a Space
-  picker. On phones, where the sidebar can't be filtered, the Spaces row opens this screen
+- **Manage screen.** Every Space, with arrows to reorder them, and every project on every
+  connected host, each with a Space picker. On phones, where the sidebar can't be filtered, the Spaces row opens this screen
   instead of a switcher.
 - **Follows you.** Opening a workspace from the command center, a notification or another plugin
   switches to its Space and unfolds its project. Switching Spaces yourself leaves the open chat

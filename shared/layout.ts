@@ -17,6 +17,11 @@ export const LayoutSchema = z
       .default(() => [{ id: "s1", name: "Main" }]),
     /** Sidebar project view key → Space id. Unassigned projects belong to the first Space. */
     assignments: z.record(z.string(), z.string()).default(() => ({})),
+    /**
+     * The Space unsorted projects belong to, kept only once reordering has moved it off the top:
+     * without it they belong to the first Space.
+     */
+    home: z.string().optional(),
   })
   .refine(
     (layout) => new Set(layout.spaces.map((space) => space.id)).size === layout.spaces.length,
@@ -40,9 +45,23 @@ export function hasSpace(layout: Layout, id: string) {
   return layout.spaces.some((space) => space.id === id);
 }
 
+/** The Space unsorted projects belong to: the first, until reordering moves it down. */
+export function homeOf(layout: Layout): string {
+  return layout.home !== undefined && hasSpace(layout, layout.home)
+    ? layout.home
+    : layout.spaces[0].id;
+}
+
+/** `layout` with these Spaces, in this order, and unsorted projects still in `home`. */
+function withSpaces(layout: Layout, spaces: Space[], home: string): Layout {
+  const { home: _, ...rest } = layout;
+  const kept = spaces.some((space) => space.id === home) && spaces[0].id !== home;
+  return kept ? { ...rest, spaces, home } : { ...rest, spaces };
+}
+
 export function spaceFor(layout: Layout, viewKey: string): string {
   const id = layout.assignments[viewKey];
-  return id !== undefined && hasSpace(layout, id) ? id : layout.spaces[0].id;
+  return id !== undefined && hasSpace(layout, id) ? id : homeOf(layout);
 }
 
 function cleanName(name: string) {
@@ -87,7 +106,24 @@ export function removeSpace(layout: Layout, id: string): { layout: Layout; targe
   const assignments: Record<string, string> = {};
   for (const [key, space] of Object.entries(layout.assignments))
     assignments[key] = space === id ? target : space;
-  return { layout: { spaces: layout.spaces.filter((s) => s.id !== id), assignments }, target };
+  const spaces = layout.spaces.filter((s) => s.id !== id);
+  // Unsorted projects in the removed Space go where its sorted ones do.
+  const home = homeOf(layout) === id ? target : homeOf(layout);
+  return { layout: withSpaces({ ...layout, assignments }, spaces, home), target };
+}
+
+/**
+ * Move a Space `delta` places along the list, stopping at either end. Only the order changes:
+ * every project, sorted or not, stays in the Space it was in.
+ */
+export function moveSpace(layout: Layout, id: string, delta: number): Layout {
+  const from = layout.spaces.findIndex((space) => space.id === id);
+  if (from < 0) throw new LayoutError("That space no longer exists.");
+  const to = Math.min(layout.spaces.length - 1, Math.max(0, from + delta));
+  if (to === from) return layout;
+  const spaces = [...layout.spaces];
+  spaces.splice(to, 0, ...spaces.splice(from, 1));
+  return withSpaces(layout, spaces, homeOf(layout));
 }
 
 export function assign(layout: Layout, viewKey: string, spaceId: string): Layout {

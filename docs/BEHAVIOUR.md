@@ -6,7 +6,7 @@ sections.
 ## Data
 
 - A **layout** is stored once per host, in host settings `layout` (version 1):
-  `{ spaces: [{ id, name }], assignments: { [projectViewKey]: spaceId } }`.
+  `{ spaces: [{ id, name }], assignments: { [projectViewKey]: spaceId }, home?: spaceId }`.
 - A project is identified by its **sidebar view key**, the key Paseo's own sidebar uses for a
   project row: the project key when it is unique on its host, otherwise
   `JSON.stringify([serverId, projectId])`. The same project on two hosts shares one key.
@@ -20,6 +20,11 @@ sections.
 - Projects a host already has when a window first lists it keep their place, and a project
   whose key already has a Space (one removed and added again, say) keeps that Space. A project
   created while no desktop or web window is open belongs to the first Space.
+- **Reordering** moves a Space one place up or down the list, stopping at either end. Only the
+  order changes: every project stays in its Space. Projects without an assignment stay too, so
+  when a move takes their Space off the top the layout records it as `home`, and drops `home`
+  again once that Space is back on top. Removing the `home` Space moves its unsorted projects
+  with the rest, to the first remaining Space.
 - The default layout is one Space, "Main".
 - Space names are trimmed, 1 to 60 characters. A new Space is named "Space N", N being one more
   than the number of Spaces, or the next number not already taken.
@@ -91,8 +96,12 @@ sections.
 
 ## Manage screen (all clients)
 
-- Lists the Spaces (rename, remove, add) and every project on every connected host, each with a
-  Space picker. On clients where the sidebar cannot be filtered, this is how Spaces are used.
+- Lists the Spaces (move up, move down, rename, remove, add) and every project on every connected
+  host, each with a Space picker. On clients where the sidebar cannot be filtered, this is how
+  Spaces are used.
+- The order set here is the order everywhere: the switcher, its digits 1 to 9, ⌘⌥↑ and ⌘⌥↓, the
+  command center and each project's "Move to space" section. The arrows show once there are two
+  Spaces; the first has no way up and the last no way down.
 
 ## Data access
 
