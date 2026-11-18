@@ -96,8 +96,9 @@ sections.
   show gets a badge with its number in the Space, and Paseo's own are covered. They go up and
   come down with Paseo's.
 - With nothing hidden (one Space, or every project in the current one) the shortcut and its
-  badges are left to Paseo. So are a jump shortcut rebound in Paseo's settings, which keeps
-  Paseo's numbers, and keys pressed inside an embedded browser pane.
+  badges are left to Paseo. So are keys pressed inside an embedded browser pane.
+- A jump shortcut rebound in Paseo's settings is not followed: the new keys use Paseo's numbers,
+  and the default keys still jump by Space.
 - Paseo has no way for a plugin to claim a key and its listener may run first. It stands aside
   while the page is not visible, so for the length of a jump key press that is ours the document
   reports itself hidden. If a Paseo update stops honouring that, Paseo jumps first and ours
